@@ -1,11 +1,8 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 
 project(spidev-lib)
-set(CMAKE_CXX_FLAGS "-g -Wall")
-set(CMAKE_C_FLAGS "-g -Wall")
 
-include_directories(src/)
-
+include_directories(src)
 
 add_library(spidev-lib src/spidev_lib.c)
 add_executable(
@@ -14,8 +11,8 @@ add_executable(
 target_link_libraries( spi-testc spidev-lib)
 
 add_library(spidev-lib++ src/spidev_lib++.cc)
-add_executable(spi-testcpp sample/spidev-testcpp.cc)
-target_link_libraries( spi-testcpp spidev-lib++ )
+add_library(spidev-lib++ src/spidev_lib++.cc src/spidev_lib++.h)
+target_include_directories(spidev-lib++ INTERFACE src)
 
 add_dependencies(spi-testcpp spidev-lib++)
 add_dependencies(spi-testc spidev-lib)

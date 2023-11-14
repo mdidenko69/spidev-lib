@@ -2,34 +2,50 @@
 #include <stdlib.h>
 #include <string.h>
 #include <spidev_lib++.h>
+#include <memory>
 
-spi_config_t spi_config;
-uint8_t tx_buffer[32];
-uint8_t rx_buffer[32];
-
-
-int  main( void)
+static void hex_dump(const uint8_t *src, size_t length, size_t line_size, char *prefix)
 {
+	int i = 0;
+	const uint8_t *address = src;
+	const uint8_t *line = address;
+	unsigned char c;
 
-  SPI *mySPI = NULL;
+	printf("%s | ", prefix);
+	while (length-- > 0) {
+		printf("%02X ", *address++);
+		if (!(++i % line_size) || (length == 0 && i % line_size)) {
+			if (length == 0) {
+				while (i++ % line_size)
+					printf("__ ");
+			}
+			printf(" | ");  /* right close */
+			while (line < address) {
+				c = *line++;
+				printf("%c", (c < 33 || c == 255) ? 0x2E : c);
+			}
+			printf("\n");
+			if (length > 0)
+				printf("%s | ", prefix);
+		}
+	}
+}
 
-  spi_config.mode=0;
-  spi_config.speed=1000000;
-  spi_config.delay=0;
-  spi_config.bits_per_word=8;
 
-  mySPI=new SPI("/dev/spidev1.0",&spi_config);
+int  main() {
 
-  if (mySPI->begin())
-  {
-    memset(tx_buffer,0,32);
-    memset(rx_buffer,0,32);
-    sprintf((char*)tx_buffer,"hello world");
-    printf("sending %s, to spidev2.0 in full duplex \n ",(char*)tx_buffer); 
-    mySPI->xfer(tx_buffer,strlen((char*)tx_buffer),rx_buffer,strlen((char*)tx_buffer));
-    printf("rx_buffer=%s\n",(char *)rx_buffer);
-    //mySPI->end();
-    delete mySPI; 
+  constexpr uint32_t bufsize = 200;
+  uint8_t buffer[bufsize];
+  memset(buffer,0,bufsize);
+
+  spi_config_t spi_config{SPI_MODE_3, 8, 1000000, 0};
+  std::unique_ptr<SPI> mySPI = std::make_unique<SPI>("/dev/spidev1.1", &spi_config);
+
+  if (1) {// mySPI->begin()) {
+    //mySPI->xfer(tx_buffer,strlen((char*)tx_buffer),rx_buffer,strlen((char*)tx_buffer));
+    mySPI->read(buffer, bufsize);
+    hex_dump(buffer, bufsize, 32, "RX");
+      //printf("rx_buffer=%s\n",(char *)rx_buffer);
   }
- return 1;
+  return 0;
 }

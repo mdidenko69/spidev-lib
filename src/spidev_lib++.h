@@ -20,46 +20,54 @@
 
 #ifndef _SPI_LIB_HPP
 #define _SPI_LIB_HPP
-#endif 
 
 #include <stdint.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stdexcept>
+#include <string>
+#include <sstream>
+#include <linux/spi/spidev.h>
 
 typedef struct {
-    uint8_t mode;
-    uint8_t bits_per_word;
-    uint32_t speed;
-    uint16_t delay;
+  uint8_t mode{SPI_MODE_0};
+  uint8_t bits_per_word{8};
+  uint32_t speed{5000000};
+  uint16_t delay{0};
 } spi_config_t;
 
-#ifdef __cplusplus
-}
-#endif
-
-//class SPI{
-//public:
-#ifdef __cplusplus
-class SPI{
-private:
-char *m_spidev;
-int m_spifd;
-spi_config_t m_spiconfig;
-bool m_open;
+class SPIError : public std::runtime_error {
 public:
-        SPI(const char * p_spidev);
-        SPI(const char * p_spidev, spi_config_t *p_spi_config);
-        ~SPI();
-        bool begin();
-        bool end();
-        int read(uint8_t *p_rxbuffer,uint8_t p_rxlen);
-        int write(uint8_t *p_txbuffer,uint8_t p_txlen);
-        int xfer(uint8_t *p_txbuffer, uint8_t p_txlen, uint8_t *p_rxbuffer, uint8_t p_rxlen);
-        bool setSpeed(uint32_t p_speed);
-        bool setMode(uint8_t p_mode);
-        bool setBitPerWord(uint8_t p_bit);
+  SPIError(const std::string& msg, const char *file, int line) : std::runtime_error(msg) {
+    std::ostringstream o;
+    o << file << ":" << line << ": " << msg;
+    msg_ = o.str();
+  }
+  const char *what() const noexcept override {
+    return msg_.c_str();
+  }
+private:
+  std::string msg_;
+};
+
+class SPI {
+public:
+
+  SPI(const std::string& spidev, spi_config_t *p_spi_config = nullptr);
+  ~SPI();
+
+  bool begin();
+  int read(uint8_t *buffer, uint32_t len);
+  int write(uint8_t *buffer, uint32_t len);
+  int xfer(uint8_t *buffer, uint32_t len);
+  bool setSpeed(uint32_t p_speed);
+  bool setMode(uint8_t p_mode);
+  bool setBitPerWord(uint8_t p_bit);
 	bool setConfig(spi_config_t *p_spi_config);
+
+private:
+  std::string spidev_ {nullptr};
+  int spifd_ {};
+  spi_config_t spiconfig_;
+  bool opened_ {false};
 
 };
 
